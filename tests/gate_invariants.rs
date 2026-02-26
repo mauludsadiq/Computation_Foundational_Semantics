@@ -1,4 +1,5 @@
 use asc7::{Asc7Profile, asc7_kernel_cert, normalize_str, verify_terminal};
+use asc7::confusables::confusables_kernel_cert;
 use sembit::{Test, TestFamily, sembit_quotient, tests_hash_hex, quotient_digest_hex, sembit_kernel_cert};
 use collapse_core::{sem_entropy_bits, CertChain, CertItem};
 use structural_numbers::{QE, domain_qe_bounded};
@@ -23,6 +24,8 @@ fn gate_spine_chain_contains_asc7_hash() {
     let profile = Asc7Profile::code_safe();
     let asc7_cert = asc7_kernel_cert(&profile);
     let asc7_hash = asc7_cert.kernel_hash_hex();
+    let conf_cert = confusables_kernel_cert();
+    let conf_hash = conf_cert.kernel_hash_hex();
 
     let domain: Vec<QE> = domain_qe_bounded(10, 10);
     let domain_digest = domain_digest_hex(&domain);
@@ -43,11 +46,12 @@ fn gate_spine_chain_contains_asc7_hash() {
     let qdig = quotient_digest_hex(&q);
 
     let sembit_cert = sembit_kernel_cert(
-        &asc7_hash, &tests_hash, &domain_digest, q.size(), h, &qdig
+        &asc7_hash, &conf_hash, &tests_hash, &domain_digest, q.size(), h, &qdig
     );
 
     let chain = CertChain::build(vec![
         CertItem { name: "asc7".to_string(), hash_hex: asc7_hash.clone() },
+        CertItem { name: "asc7_confusables".to_string(), hash_hex: conf_hash.clone() },
         CertItem { name: "sembit".to_string(), hash_hex: sembit_cert.kernel_hash_hex() },
     ]);
 

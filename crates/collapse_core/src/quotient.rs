@@ -6,6 +6,8 @@ use std::collections::BTreeMap;
 pub enum Signature {
     Bits(Vec<bool>),
     Text(String),
+    I64(i64),
+    U64(u64),
     PairI64(i64, i64),
     Tuple(Vec<Signature>),
 }

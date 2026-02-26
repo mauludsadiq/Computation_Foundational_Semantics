@@ -46,6 +46,16 @@ impl PartialOrd for QE {
     }
 }
 
+pub fn canon_domain_digest_hex_u64(domain: &[u64]) -> String {
+    let arr: Vec<Canon> = domain.iter().map(|x| Canon::U64(*x)).collect();
+    sha256_hex(sha256_bytes(&canon_bytes(&Canon::Arr(arr))))
+}
+
+pub fn canon_domain_digest_hex_i64(domain: &[i64]) -> String {
+    let arr: Vec<Canon> = domain.iter().map(|x| Canon::I64(*x)).collect();
+    sha256_hex(sha256_bytes(&canon_bytes(&Canon::Arr(arr))))
+}
+
 /// Canonical domain digest: sha256(canon([{num,den}, ...])).
 /// Caller should supply deterministic order; our enumerators sort+dedup.
 pub fn domain_digest_hex(domain: &[QE]) -> String {

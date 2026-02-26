@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 
 use asc7::{Asc7Profile, asc7_kernel_cert, normalize_str};
+use asc7::confusables::confusables_kernel_cert;
 use collapse_core::{CertChain, CertItem, sem_entropy_bits};
 use sembit::{Test, TestFamily, sembit_quotient, tests_hash_hex, quotient_digest_hex, sembit_kernel_cert};
 use structural_numbers::{QE, domain_qe_bounded};
@@ -15,6 +16,8 @@ fn compute_spine() -> BTreeMap<String, String> {
     let profile = Asc7Profile::code_safe();
     let asc7_cert = asc7_kernel_cert(&profile);
     let asc7_hash = asc7_cert.kernel_hash_hex();
+    let conf_cert = confusables_kernel_cert();
+    let conf_hash = conf_cert.kernel_hash_hex();
 
     let domain: Vec<QE> = domain_qe_bounded(20, 20);
     let domain_digest = domain_digest_hex(&domain);
@@ -36,6 +39,7 @@ fn compute_spine() -> BTreeMap<String, String> {
 
     let sembit_cert = sembit_kernel_cert(
         &asc7_hash,
+        &conf_hash,
         &tests_hash,
         &domain_digest,
         q.size(),
@@ -47,10 +51,12 @@ fn compute_spine() -> BTreeMap<String, String> {
 
     let chain = CertChain::build(vec![
         CertItem { name: "asc7".to_string(), hash_hex: asc7_hash.clone() },
+        CertItem { name: "asc7_confusables".to_string(), hash_hex: conf_hash.clone() },
         CertItem { name: "sembit".to_string(), hash_hex: sembit_hash.clone() },
     ]);
 
     let mut m = BTreeMap::new();
+    m.insert("confusables_hash".to_string(), conf_hash);
     m.insert("asc7_hash".to_string(), asc7_hash);
     m.insert("domain_digest".to_string(), domain_digest);
     m.insert("tests_hash".to_string(), tests_hash);
@@ -69,7 +75,7 @@ fn gate_freeze_expected_digests() {
     let expected: BTreeMap<String, String> = serde_json::from_str(&raw).unwrap();
     let got = compute_spine();
 
-    for k in ["asc7_hash", "domain_digest", "tests_hash", "sembit_hash", "chain_hash"] {
+    for k in ["confusables_hash", "asc7_hash", "domain_digest", "tests_hash", "sembit_hash", "chain_hash"] {
         let e = expected.get(k).unwrap_or_else(|| panic!("expected.json missing key: {k}"));
         let g = got.get(k).unwrap();
         assert_eq!(g, e, "freeze gate mismatch for key={k}");

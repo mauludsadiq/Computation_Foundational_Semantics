@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 
 use asc7::{Asc7Profile, asc7_kernel_cert, normalize_str, verify_terminal};
+use asc7::confusables::confusables_kernel_cert;
 use collapse_core::{CertChain, CertItem, sem_entropy_bits};
 use sembit::{Test, TestFamily, sembit_quotient, tests_hash_hex, quotient_digest_hex, sembit_kernel_cert};
 use structural_numbers::{QE, domain_qe_bounded};
@@ -14,6 +15,7 @@ fn t_den_gt_3(x: &QE) -> bool { x.den() > 3 }
 #[derive(Clone, Debug)]
 struct SpineDigests {
     asc7_hash: String,
+    confusables_hash: String,
     domain_digest: String,
     tests_hash: String,
     sembit_hash: String,
@@ -24,6 +26,8 @@ fn compute_spine() -> SpineDigests {
     let profile = Asc7Profile::code_safe();
     let asc7_cert = asc7_kernel_cert(&profile);
     let asc7_hash = asc7_cert.kernel_hash_hex();
+    let conf_cert = confusables_kernel_cert();
+    let confusables_hash = conf_cert.kernel_hash_hex();
 
     let domain: Vec<QE> = domain_qe_bounded(20, 20);
     let domain_digest = domain_digest_hex(&domain);
@@ -45,6 +49,7 @@ fn compute_spine() -> SpineDigests {
 
     let sembit_cert = sembit_kernel_cert(
         &asc7_hash,
+        &confusables_hash,
         &tests_hash,
         &domain_digest,
         q.size(),
@@ -56,11 +61,13 @@ fn compute_spine() -> SpineDigests {
 
     let chain = CertChain::build(vec![
         CertItem { name: "asc7".to_string(), hash_hex: asc7_hash.clone() },
+        CertItem { name: "asc7_confusables".to_string(), hash_hex: confusables_hash.clone() },
         CertItem { name: "sembit".to_string(), hash_hex: sembit_hash.clone() },
     ]);
 
     SpineDigests {
         asc7_hash,
+        confusables_hash,
         domain_digest,
         tests_hash,
         sembit_hash,
@@ -70,6 +77,7 @@ fn compute_spine() -> SpineDigests {
 
 fn write_expected_json(d: &SpineDigests) {
     let mut obj = BTreeMap::new();
+    obj.insert("confusables_hash", d.confusables_hash.clone());
     obj.insert("asc7_hash", d.asc7_hash.clone());
     obj.insert("domain_digest", d.domain_digest.clone());
     obj.insert("tests_hash", d.tests_hash.clone());
@@ -108,7 +116,8 @@ fn main() {
     println!();
 
     println!("=== Spine digests ===");
-    println!("asc7_hash     = sha256:{}", d.asc7_hash);
+    println!("confusables_hash = sha256:{}", d.confusables_hash);
+        println!("asc7_hash     = sha256:{}", d.asc7_hash);
     println!("domain_digest = sha256:{}", d.domain_digest);
     println!("tests_hash    = sha256:{}", d.tests_hash);
     println!("sembit_hash   = sha256:{}", d.sembit_hash);

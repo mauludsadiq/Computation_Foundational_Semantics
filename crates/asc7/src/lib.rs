@@ -1,6 +1,7 @@
 pub mod role;
 pub mod profile;
 pub mod normalize;
+pub mod confusables;
 
 pub use role::{CharRole, classify_role};
 pub use profile::{Asc7Profile, Asc7ProfileParams, asc7_kernel_cert};

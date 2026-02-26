@@ -11,6 +11,8 @@ fn sig_to_canon(sig: &Signature) -> Canon {
     match sig {
         Signature::Bits(bs) => Canon::Arr(bs.iter().map(|b| Canon::Bool(*b)).collect()),
         Signature::Text(s) => Canon::Str(s.clone()),
+        Signature::I64(n) => Canon::I64(*n),
+        Signature::U64(n) => Canon::U64(*n),
         Signature::PairI64(a, b) => {
             let mut o = BTreeMap::new();
             o.insert("a".to_string(), Canon::I64(*a));
@@ -43,6 +45,7 @@ pub fn quotient_digest_hex<E>(q: &Quotient<E>) -> String {
 
 pub fn sembit_kernel_cert(
     asc7_graph_hash_hex: &str,
+    confusables_graph_hash_hex: &str,
     tests_hash_hex: &str,
     domain_digest_hex: &str,
     q_classes: usize,
@@ -53,6 +56,7 @@ pub fn sembit_kernel_cert(
 
     let mut obj = BTreeMap::new();
     obj.insert("asc7_graph_hash".to_string(), Canon::Str(asc7_graph_hash_hex.to_string()));
+    obj.insert("confusables_graph_hash".to_string(), Canon::Str(confusables_graph_hash_hex.to_string()));
     obj.insert("tests_hash".to_string(), Canon::Str(tests_hash_hex.to_string()));
     obj.insert("domain_digest".to_string(), Canon::Str(domain_digest_hex.to_string()));
     obj.insert("classes".to_string(), Canon::U64(q_classes as u64));
