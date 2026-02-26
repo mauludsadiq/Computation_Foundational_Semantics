@@ -145,8 +145,22 @@ fn main() {
         tr_sembit.kv("largest_class_members", &format!("{}", members.len()));
         let pct = (members.len() as f64 / domain_qe.len() as f64) * 100.0;
         tr_sembit.kv("largest_class_percent", &format!("{pct:.2}%"));
-        for (i, q) in members.iter().take(5).enumerate() {
+        for (i, q) in members.iter().take(8).enumerate() {
             tr_sembit.kv(&format!("example_{}", i + 1), &format!("{}/{}", q.num(), q.den()));
+        }
+        let mut sum_val = 0.0;
+        for q in members.iter() {
+            sum_val += q.num() as f64 / q.den() as f64;
+        }
+        let avg_val = sum_val / members.len() as f64;
+        tr_sembit.kv("largest_class_avg_value", &format!("{avg_val:.6}"));
+        if let Some((small_sig, small_members)) = q.classes.iter().min_by_key(|(_, v)| v.len()) {
+            tr_sembit.section("SMALLEST CLASS");
+            tr_sembit.kv("smallest_class_sig", &format!("{small_sig:?}"));
+            tr_sembit.kv("smallest_class_members", &format!("{}", small_members.len()));
+            if let Some(first) = small_members.first() {
+                tr_sembit.kv("smallest_class_example", &format!("{}/{}", first.num(), first.den()));
+            }
         }
     }
 
