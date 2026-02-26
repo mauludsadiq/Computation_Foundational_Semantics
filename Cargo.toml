@@ -6,7 +6,9 @@ members = [
   "crates/asc7",
   "crates/sembit",
   "crates/structural_numbers",
+  "crates/traceutil",
   "bins/collapse_spine_demo",
+  "bins/collapse_trace_demo",
 ]
 
 [workspace.package]
