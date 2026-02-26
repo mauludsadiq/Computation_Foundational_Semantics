@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/gates",
+  "crates/collapse_core",
+  "crates/asc7",
+  "crates/sembit",
+  "crates/structural_numbers",
+  "bins/collapse_spine_demo",
+]
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"

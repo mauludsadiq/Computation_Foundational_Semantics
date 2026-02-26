@@ -1,0 +1,11 @@
+[package]
+name = "gates"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+asc7 = { path = "../asc7" }
+collapse_core = { path = "../collapse_core" }
+sembit = { path = "../sembit" }
+structural_numbers = { path = "../structural_numbers" }
+serde_json = "1.0"
