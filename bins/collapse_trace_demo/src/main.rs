@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fs;
 use std::path::Path;
 
 use asc7::{Asc7Profile, asc7_kernel_cert, normalize_str};
@@ -138,6 +139,14 @@ fn main() {
         Signature::Bits(bits)
     });
     tr_sembit.kv("q.classes", &format!("{}", q.size()));
+    let mut csv = String::from("signature,count,examples\n");
+    for (sig, members) in q.classes.iter() {
+        let examples = members.iter().take(5).map(|q| format!("{}/{}", q.num(), q.den())).collect::<Vec<_>>().join(" | ");
+        csv.push_str(&format!("\"{sig:?}\",{},\"{}\"\n", members.len(), examples));
+    }
+    let csv_path = format!("out/run_{}_qe_quotient.csv", stamp);
+    fs::write(&csv_path, csv).unwrap();
+    tr_sembit.kv("quotient_csv", &csv_path);
 
     let h = sem_entropy_bits(q.size());
     tr_sembit.kv("sem_entropy_bits(classes)", &format!("{h}"));
