@@ -139,6 +139,16 @@ fn main() {
     tr_sembit.kv("raw_entropy_bits(domain)", &format!("{raw_bits:.6}"));
     tr_sembit.kv("saved_entropy_bits", &format!("{saved_bits:.6}"));
     tr_sembit.kv("compression_percent", &format!("{pct_saved:.2}%"));
+    if let Some((sig, members)) = q.classes.iter().max_by_key(|(_, v)| v.len()) {
+        tr_sembit.section("LARGEST CLASS");
+        tr_sembit.kv("largest_class_sig", &format!("{sig:?}"));
+        tr_sembit.kv("largest_class_members", &format!("{}", members.len()));
+        let pct = (members.len() as f64 / domain_qe.len() as f64) * 100.0;
+        tr_sembit.kv("largest_class_percent", &format!("{pct:.2}%"));
+        for (i, q) in members.iter().take(5).enumerate() {
+            tr_sembit.kv(&format!("example_{}", i + 1), &format!("{}/{}", q.num(), q.den()));
+        }
+    }
 
     let qdig = quotient_digest_hex(&q);
     tr_sembit.kv("quotient_digest_hex", &qdig);
