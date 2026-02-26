@@ -65,8 +65,8 @@ fn main() {
     }
 
     tr_struct.section("QE DOMAIN: CONSTRUCTION");
-    let domain_qe: Vec<QE> = domain_qe_bounded(20, 20);
-    tr_struct.kv("domain_qe_bounded(nmax=20, dmax=20)", &format!("size={}", domain_qe.len()));
+    let domain_qe: Vec<QE> = domain_qe_bounded(50, 50);
+    tr_struct.kv("domain_qe_bounded(nmax=50, dmax=50)", &format!("size={}", domain_qe.len()));
     if let Some(first) = domain_qe.first() {
         tr_struct.kv("first", &format!("{}/{}", first.num(), first.den()));
     }
