@@ -140,7 +140,7 @@ git init
 git add .
 git commit -m "Initial: Computation Foundational Semantics (ASC7 + SemBits + QE)"
 git branch -M main
-git remote add origin <YOUR_GITHUB_REPO_URL>
+git remote add origin https://github.com/mauludsadiq/Computation_Foundational_Semantics.git
 git push -u origin main
 ```
 
