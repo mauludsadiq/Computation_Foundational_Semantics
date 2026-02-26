@@ -28,9 +28,11 @@ fn trace_kernel(trace: &mut Trace, label: &str, cert: &KernelCert) -> String {
     h
 }
 
-fn t_sign(x: &QE) -> bool { x.num() > 0 }
-fn t_is_int(x: &QE) -> bool { x.den() == 1 }
-fn t_den_gt_3(x: &QE) -> bool { x.den() > 3 }
+fn t_positive(x: &QE) -> bool { x.num() > 0 }
+fn t_integer(x: &QE) -> bool { x.den() == 1 }
+fn t_den_small(x: &QE) -> bool { x.den() <= 6 }
+fn t_num_even(x: &QE) -> bool { x.num() % 2 == 0 }
+fn t_den_mod3(x: &QE) -> bool { x.den() % 3 == 0 }
 
 fn main() {
     let stamp = run_stamp();
@@ -57,7 +59,7 @@ fn main() {
     let conf_hash = trace_kernel(&mut tr_asc7, "asc7_confusables", &conf_cert);
 
     tr_asc7.section("NORMALIZE EXAMPLES (WITH PROFILE)");
-    for raw in ["sign", "is_int", "den>3", "A", "a", "O", "o"] {
+    for raw in ["positive", "integer", "den<=6", "num_even", "den_mod3", "A", "a", "O", "o"] {
         let norm = normalize_str(&profile, raw, true).unwrap();
         tr_asc7.kv(&format!("normalize({raw})"), &norm);
     }
@@ -94,24 +96,30 @@ fn main() {
     let ze_digest = domain_digest_hex_ze(&ze);
     tr_struct.kv("domain_digest_hex(Z_E)", &ze_digest);
 
-    tr_sembit.section("TEST FAMILY: NON-BINARY VIA TUPLED SIGNATURE");
-    tr_sembit.kv("note", "We build a Tuple signature: [Bits(b1,b2,b3), PairI64(num,den)] per element (still deterministic).");
+    tr_sembit.section("TEST FAMILY: COLLAPSING BOOLEAN BUCKETS");
+    tr_sembit.kv("note", "We build a Bits signature from 5 coarse predicates so many rationals share the same class.");
 
-    let id1 = normalize_str(&profile, "sign", true).unwrap();
-    let id2 = normalize_str(&profile, "is_int", true).unwrap();
-    let id3 = normalize_str(&profile, "den>3", true).unwrap();
+    let id1 = normalize_str(&profile, "positive", true).unwrap();
+    let id2 = normalize_str(&profile, "integer", true).unwrap();
+    let id3 = normalize_str(&profile, "den<=6", true).unwrap();
+    let id4 = normalize_str(&profile, "num_even", true).unwrap();
+    let id5 = normalize_str(&profile, "den_mod3", true).unwrap();
 
     let tf = TestFamily::new(vec![
-        Test { id_norm: id1.clone(), f: t_sign },
-        Test { id_norm: id2.clone(), f: t_is_int },
-        Test { id_norm: id3.clone(), f: t_den_gt_3 },
+        Test { id_norm: id1.clone(), f: t_positive },
+        Test { id_norm: id2.clone(), f: t_integer },
+        Test { id_norm: id3.clone(), f: t_den_small },
+        Test { id_norm: id4.clone(), f: t_num_even },
+        Test { id_norm: id5.clone(), f: t_den_mod3 },
     ]);
 
-    let tests_hash = tests_hash_hex(&tf, "impl:static_v1_tuple_sig");
+    let tests_hash = tests_hash_hex(&tf, "impl:static_v2_bucket_bits");
     tr_sembit.kv("tests_hash_hex", &tests_hash);
     tr_sembit.kv("test_id_1", &id1);
     tr_sembit.kv("test_id_2", &id2);
     tr_sembit.kv("test_id_3", &id3);
+    tr_sembit.kv("test_id_4", &id4);
+    tr_sembit.kv("test_id_5", &id5);
 
     tr_sembit.section("DOMAIN DIGEST (QE)");
     tr_sembit.kv("domain_digest_hex(QE)", &qe_digest);
@@ -119,15 +127,18 @@ fn main() {
     tr_sembit.section("QUOTIENT: EXECUTE TESTS → BUILD SIGNATURES → PARTITION");
     let q: Quotient<QE> = Quotient::from_signatures(&domain_qe, |x| {
         let bits = tf.signature(x);
-        Signature::Tuple(vec![
-            Signature::Bits(bits),
-            Signature::PairI64(x.num(), x.den()),
-        ])
+        Signature::Bits(bits)
     });
     tr_sembit.kv("q.classes", &format!("{}", q.size()));
 
     let h = sem_entropy_bits(q.size());
     tr_sembit.kv("sem_entropy_bits(classes)", &format!("{h}"));
+    let raw_bits = (domain_qe.len() as f64).log2();
+    let saved_bits = raw_bits - h;
+    let pct_saved = if raw_bits > 0.0 { (saved_bits / raw_bits) * 100.0 } else { 0.0 };
+    tr_sembit.kv("raw_entropy_bits(domain)", &format!("{raw_bits:.6}"));
+    tr_sembit.kv("saved_entropy_bits", &format!("{saved_bits:.6}"));
+    tr_sembit.kv("compression_percent", &format!("{pct_saved:.2}%"));
 
     let qdig = quotient_digest_hex(&q);
     tr_sembit.kv("quotient_digest_hex", &qdig);
