@@ -149,11 +149,18 @@ fn main() {
             tr_sembit.kv(&format!("example_{}", i + 1), &format!("{}/{}", q.num(), q.den()));
         }
         let mut sum_val = 0.0;
+        let mut min_val = f64::INFINITY;
+        let mut max_val = f64::NEG_INFINITY;
         for q in members.iter() {
-            sum_val += q.num() as f64 / q.den() as f64;
+            let v = q.num() as f64 / q.den() as f64;
+            sum_val += v;
+            if v < min_val { min_val = v; }
+            if v > max_val { max_val = v; }
         }
         let avg_val = sum_val / members.len() as f64;
         tr_sembit.kv("largest_class_avg_value", &format!("{avg_val:.6}"));
+        tr_sembit.kv("largest_class_min_value", &format!("{min_val:.6}"));
+        tr_sembit.kv("largest_class_max_value", &format!("{max_val:.6}"));
         if let Some((small_sig, small_members)) = q.classes.iter().min_by_key(|(_, v)| v.len()) {
             tr_sembit.section("SMALLEST CLASS");
             tr_sembit.kv("smallest_class_sig", &format!("{small_sig:?}"));
