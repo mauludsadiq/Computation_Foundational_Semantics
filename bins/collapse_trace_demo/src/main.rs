@@ -34,6 +34,7 @@ fn t_den_small(x: &QE) -> bool { x.den() <= 6 }
 fn t_num_even(x: &QE) -> bool { x.num() % 2 == 0 }
 fn t_den_mod3(x: &QE) -> bool { x.den() % 3 == 0 }
 fn t_proper(x: &QE) -> bool { x.num().abs() < x.den() }
+fn t_num_abs_le_5(x: &QE) -> bool { x.num().abs() <= 5 }
 
 fn main() {
     let stamp = run_stamp();
@@ -60,7 +61,7 @@ fn main() {
     let conf_hash = trace_kernel(&mut tr_asc7, "asc7_confusables", &conf_cert);
 
     tr_asc7.section("NORMALIZE EXAMPLES (WITH PROFILE)");
-    for raw in ["positive", "integer", "den<=6", "num_even", "den_mod3", "proper", "A", "a", "O", "o"] {
+    for raw in ["positive", "integer", "den<=6", "num_even", "den_mod3", "proper", "num_abs<=5", "A", "a", "O", "o"] {
         let norm = normalize_str(&profile, raw, true).unwrap();
         tr_asc7.kv(&format!("normalize({raw})"), &norm);
     }
@@ -97,8 +98,8 @@ fn main() {
     let ze_digest = domain_digest_hex_ze(&ze);
     tr_struct.kv("domain_digest_hex(Z_E)", &ze_digest);
 
-    tr_sembit.section("TEST FAMILY: 6-BIT COLLAPSING BUCKETS WITH PROPER SPLIT");
-    tr_sembit.kv("note", "We build a Bits signature from 6 coarse predicates; the 6th splits proper vs improper fractions.");
+    tr_sembit.section("TEST FAMILY: 7-BIT COLLAPSING BUCKETS WITH PROPER AND NUM-ABS SPLIT");
+    tr_sembit.kv("note", "We build a Bits signature from 7 coarse predicates; the 6th splits proper vs improper fractions and the 7th splits small vs large numerator magnitude.");
 
     let id1 = normalize_str(&profile, "positive", true).unwrap();
     let id2 = normalize_str(&profile, "integer", true).unwrap();
@@ -106,6 +107,7 @@ fn main() {
     let id4 = normalize_str(&profile, "num_even", true).unwrap();
     let id5 = normalize_str(&profile, "den_mod3", true).unwrap();
     let id6 = normalize_str(&profile, "proper", true).unwrap();
+    let id7 = normalize_str(&profile, "num_abs<=5", true).unwrap();
 
     let tf = TestFamily::new(vec![
         Test { id_norm: id1.clone(), f: t_positive },
@@ -114,9 +116,10 @@ fn main() {
         Test { id_norm: id4.clone(), f: t_num_even },
         Test { id_norm: id5.clone(), f: t_den_mod3 },
         Test { id_norm: id6.clone(), f: t_proper },
+        Test { id_norm: id7.clone(), f: t_num_abs_le_5 },
     ]);
 
-    let tests_hash = tests_hash_hex(&tf, "impl:static_v3_bucket_bits_proper");
+    let tests_hash = tests_hash_hex(&tf, "impl:static_v4_bucket_bits_proper_numabs");
     tr_sembit.kv("tests_hash_hex", &tests_hash);
     tr_sembit.kv("test_id_1", &id1);
     tr_sembit.kv("test_id_2", &id2);
@@ -124,6 +127,7 @@ fn main() {
     tr_sembit.kv("test_id_4", &id4);
     tr_sembit.kv("test_id_5", &id5);
     tr_sembit.kv("test_id_6", &id6);
+    tr_sembit.kv("test_id_7", &id7);
 
     tr_sembit.section("DOMAIN DIGEST (QE)");
     tr_sembit.kv("domain_digest_hex(QE)", &qe_digest);
