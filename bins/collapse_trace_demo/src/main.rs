@@ -61,18 +61,23 @@ fn main() {
     let conf_cert = confusables_kernel_cert();
     let conf_hash = trace_kernel(&mut tr_asc7, "asc7_confusables", &conf_cert);
 
+    tr_asc7.section("CONFUSABLES EXPLANATION");
+    tr_asc7.kv("Latin→Greek capitals", "A→Α, B→Β, E→Ε, I→Ι, K→Κ, M→Μ, N→Ν, O→Ο, P→Ρ, T→Τ, X→Χ, Y→Υ");
+    tr_asc7.kv("Latin→Cyrillic lowercase", "a→а, e→е, o→о, p→р, c→с, x→х, y→у");
+    tr_asc7.kv("Purpose", "Detect homoglyph attacks where Greek/Cyrillic characters mimic Latin ones");
+    tr_asc7.kv("Profile", "Asc7Profile::code_safe()");
+
     tr_asc7.section("NORMALIZE EXAMPLES (WITH PROFILE)");
     for raw in ["positive", "integer", "den<=6", "num_even", "den_mod3", "proper", "num_abs<=5", "A", "a", "O", "o"] {
         let norm = normalize_str(&profile, raw, true).unwrap();
         tr_asc7.kv(&format!("normalize({raw})"), &norm);
     }
 
-    tr_struct.section("QE DOMAIN: CONSTRUCTION");
+    tr_struct.section("STAGE 1: DEFINING THE RATIONAL UNIVERSE (QE)");
     let domain_qe: Vec<QE> = domain_qe_bounded(100, 100);
-    tr_struct.kv("domain_qe_bounded(nmax=100, dmax=100)", &format!("size={}", domain_qe.len()));
-    if let Some(first) = domain_qe.first() {
-        tr_struct.kv("first", &format!("{}/{}", first.num(), first.den()));
-    }
+    tr_struct.kv("Objective", "Establish a finite window of reduced fractions for semantic auditing.");
+    tr_struct.kv("Structural Variety", &format!("{} unique rational numbers", domain_qe.len()));
+    tr_struct.kv("Status", "Structural Foundation Set.");
     if let Some(last) = domain_qe.last() {
         tr_struct.kv("last", &format!("{}/{}", last.num(), last.den()));
     }
@@ -81,23 +86,27 @@ fn main() {
     let qe_digest = domain_digest_hex(&domain_qe);
     tr_struct.kv("domain_digest_hex(QE)", &qe_digest);
 
-    tr_struct.section("N_E DOMAIN: CONSTRUCTION");
+    tr_struct.section("STAGE 2: DEFINING NATURAL ENUMERATIONS (NE)");
+    let ne_domain = domain_ne(40);
+    tr_struct.kv("Objective", "Construct an unsigned counting domain for discrete quantities.");
+    tr_struct.kv("Cardinality", &format!("{}", ne_domain.len()));
     let ne = domain_ne(40);
     let ne_view = domain_view_ne(&ne);
     for (k, v) in ne_view {
         tr_struct.kv(&format!("N_E.{k}"), &v);
     }
     let ne_digest = domain_digest_hex_ne(&ne);
-    tr_struct.kv("domain_digest_hex(N_E)", &ne_digest);
 
-    tr_struct.section("Z_E DOMAIN: CONSTRUCTION");
+    tr_struct.section("STAGE 3: DEFINING INTEGER OFFSETS (ZE)");
+    let ze_domain = domain_ze(20);
+    tr_struct.kv("Objective", "Construct a signed integer domain for relative displacement.");
+    tr_struct.kv("Cardinality", &format!("{}", ze_domain.len()));
     let ze = domain_ze(20);
     let ze_view = domain_view_ze(&ze);
     for (k, v) in ze_view {
         tr_struct.kv(&format!("Z_E.{k}"), &v);
     }
     let ze_digest = domain_digest_hex_ze(&ze);
-    tr_struct.kv("domain_digest_hex(Z_E)", &ze_digest);
 
     tr_sembit.section("TEST FAMILY: 7-BIT COLLAPSING BUCKETS WITH PROPER AND NUM-ABS SPLIT");
     tr_sembit.kv("note", "We build a Bits signature from 7 coarse predicates; the 6th splits proper vs improper fractions and the 7th splits small vs large numerator magnitude.");
@@ -193,7 +202,7 @@ fn main() {
     let cluster_count = behavior_classes.saturating_sub(singleton_count);
     tr_sembit.kv("singletons", &format!("{singleton_count} unique identities"));
     tr_sembit.kv("clusters", &format!("{cluster_count} generalized buckets"));
-    tr_sembit.kv("topography_read", "Singletons are uniquely isolated behaviors; clusters are shared semantic buckets.");
+    tr_sembit.kv("Objective", "Map the behavioral landscape to distinguish unique mathematical identities from redundant semantic clusters.");
 
     if let Some((sig, members)) = q.classes.iter().max_by_key(|(_, v)| v.len()) {
         tr_sembit.section("LARGEST CLASS");
