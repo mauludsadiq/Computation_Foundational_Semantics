@@ -166,18 +166,8 @@ fn main() {
     let json = serde_json::to_string_pretty(&summary).unwrap();
     tr_sembit.line(&json);
 
-    tr_struct.section("OUTPUT FILES");
-    tr_struct.kv("structural_log", &tr_struct.path().display().to_string());
-    tr_struct.kv("sembits_log", &tr_sembit.path().display().to_string());
-    tr_struct.kv("asc7_log", &tr_asc7.path().display().to_string());
-
     tr_sembit.section("OUTPUT FILES");
     tr_sembit.kv("structural_log", &tr_struct.path().display().to_string());
     tr_sembit.kv("sembits_log", &tr_sembit.path().display().to_string());
     tr_sembit.kv("asc7_log", &tr_asc7.path().display().to_string());
-
-    tr_asc7.section("OUTPUT FILES");
-    tr_asc7.kv("structural_log", &tr_struct.path().display().to_string());
-    tr_asc7.kv("sembits_log", &tr_sembit.path().display().to_string());
-    tr_asc7.kv("asc7_log", &tr_asc7.path().display().to_string());
 }
