@@ -139,18 +139,27 @@ fn main() {
         Signature::Bits(bits)
     });
     tr_sembit.kv("q.classes", &format!("{}", q.size()));
-    let mut csv = String::from("signature,count,examples\n");
+    let mut csv = String::from("signature,count,min_value,max_value,avg_value,examples\n");
     for (sig, members) in q.classes.iter() {
         let examples = members.iter().take(5).map(|q| format!("{}/{}", q.num(), q.den())).collect::<Vec<_>>().join(" | ");
-        csv.push_str(&format!("\"{sig:?}\",{},\"{}\"\n", members.len(), examples));
+        let mut sum_val = 0.0;
+        let mut min_val = f64::INFINITY;
+        let mut max_val = f64::NEG_INFINITY;
+        for q in members.iter() {
+            let v = q.num() as f64 / q.den() as f64;
+            sum_val += v;
+            if v < min_val { min_val = v; }
+            if v > max_val { max_val = v; }
+        }
+        let avg_val = sum_val / members.len() as f64;
+        csv.push_str(&format!("\"{:?}\",{},{:.6},{:.6},{:.6},\"{}\"\n", sig, members.len(), min_val, max_val, avg_val, examples));
     }
     let csv_path = format!("out/run_{}_qe_quotient.csv", stamp);
     fs::write(&csv_path, csv).unwrap();
-    tr_sembit.kv("quotient_csv", &csv_path);
-
-    let h = sem_entropy_bits(q.size());
-    tr_sembit.kv("sem_entropy_bits(classes)", &format!("{h}"));
     let raw_bits = (domain_qe.len() as f64).log2();
+    let h = sem_entropy_bits(q.size());
+    tr_sembit.kv("quotient_csv", &csv_path);
+    tr_sembit.kv("sem_entropy_bits(classes)", &format!("{h}"));
     let saved_bits = raw_bits - h;
     let pct_saved = if raw_bits > 0.0 { (saved_bits / raw_bits) * 100.0 } else { 0.0 };
     tr_sembit.kv("raw_entropy_bits(domain)", &format!("{raw_bits:.6}"));
