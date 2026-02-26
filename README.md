@@ -146,7 +146,7 @@ git push -u origin main
 
 Then anyone can clone:
 ```sh
-git clone <YOUR_GITHUB_REPO_URL>
+git clone https://github.com/mauludsadiq/Computation_Foundational_Semantics.git
 cd Computation_Foundational_Semantics
 cargo test
 cargo run -p collapse_spine_demo
