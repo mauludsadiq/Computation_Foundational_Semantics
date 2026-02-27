@@ -74,7 +74,7 @@ fn main() {
     }
 
     tr_struct.section("STAGE 1: DEFINING THE RATIONAL UNIVERSE (QE)");
-    let domain_qe: Vec<QE> = domain_qe_bounded(100, 100);
+    let domain_qe: Vec<QE> = domain_qe_bounded(200, 200);
     tr_struct.kv("Objective", "Establish a finite window of reduced fractions for semantic auditing.");
     tr_struct.kv("Structural Variety", &format!("{} unique rational numbers", domain_qe.len()));
     tr_struct.kv("Status", "Structural Foundation Set.");
