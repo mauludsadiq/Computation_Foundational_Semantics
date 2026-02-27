@@ -194,69 +194,86 @@ fn main() {
         tr_sembit.kv(&format!("{}.compression_percent", name), &format!("{:.2}%", pct_sweep));
     }
 
-    tr_sembit.section("INTEGER DOMAINS UNDER CURRENT QE PREDICATES");
+    tr_sembit.section("INTEGER DOMAINS WITH DOMAIN-SPECIFIC PREDICATES");
 
-    let ne_qe: Vec<QE> = domain_qe
-        .iter()
-        .filter(|q| q.den() == 1 && q.num() >= 0 && q.num() <= 40)
-        .cloned()
-        .collect();
-
-    let ze_qe: Vec<QE> = domain_qe
-        .iter()
-        .filter(|q| q.den() == 1 && q.num() >= -20 && q.num() <= 20)
-        .cloned()
-        .collect();
-
-    tr_sembit.section("N_E PARTITION (EMBEDDED AS n/1)");
-    tr_sembit.kv("embedding", "Lift N_E into QE by reading each natural number as n/1.");
-    let q_ne: Quotient<QE> = Quotient::from_signatures(&ne_qe, |x| {
-        let bits = tf.signature(x);
-        Signature::Bits(bits)
+    tr_sembit.section("N_E PARTITION (INTEGER-NATIVE 7-BIT FAMILY)");
+    tr_sembit.kv("embedding", "Use N_E directly with integer-native predicates instead of fraction-derived QE bits.");
+    tr_sembit.kv("bit_1", "Pos   -> n > 0");
+    tr_sembit.kv("bit_2", "Even  -> n % 2 == 0");
+    tr_sembit.kv("bit_3", "N<=5  -> n <= 5");
+    tr_sembit.kv("bit_4", "N>=20 -> n >= 20");
+    tr_sembit.kv("bit_5", "N%3   -> n divisible by 3");
+    tr_sembit.kv("bit_6", "N%5   -> n divisible by 5");
+    tr_sembit.kv("bit_7", "Band  -> 6 <= n <= 15");
+    let q_ne_int = Quotient::from_signatures(&ne, |x| {
+        Signature::Bits(vec![
+            x.0 > 0,
+            x.0 % 2 == 0,
+            x.0 <= 5,
+            x.0 >= 20,
+            x.0 % 3 == 0,
+            x.0 % 5 == 0,
+            x.0 >= 6 && x.0 <= 15,
+        ])
     });
-    let raw_bits_ne = if ne_qe.is_empty() { 0.0 } else { (ne_qe.len() as f64).log2() };
-    let h_ne = sem_entropy_bits(q_ne.size());
+    let raw_bits_ne = if ne.is_empty() { 0.0 } else { (ne.len() as f64).log2() };
+    let h_ne = sem_entropy_bits(q_ne_int.size());
     let saved_bits_ne = raw_bits_ne - h_ne;
     let pct_ne = if raw_bits_ne > 0.0 { (saved_bits_ne / raw_bits_ne) * 100.0 } else { 0.0 };
-    let singleton_ne = q_ne.classes.values().filter(|members| members.len() == 1).count();
-    tr_sembit.kv("raw_items", &format!("{}", ne_qe.len()));
-    tr_sembit.kv("behavior_classes", &format!("{}", q_ne.size()));
+    let singleton_ne = q_ne_int.classes.values().filter(|members| members.len() == 1).count();
+    tr_sembit.kv("raw_items", &format!("{}", ne.len()));
+    tr_sembit.kv("behavior_classes", &format!("{}", q_ne_int.size()));
     tr_sembit.kv("sem_entropy_bits(classes)", &format!("{:.6}", h_ne));
     tr_sembit.kv("raw_entropy_bits(domain)", &format!("{:.6}", raw_bits_ne));
     tr_sembit.kv("saved_entropy_bits", &format!("{:.6}", saved_bits_ne));
     tr_sembit.kv("compression_percent", &format!("{:.2}%", pct_ne));
     tr_sembit.kv("singletons", &format!("{}", singleton_ne));
-    if let Some((sig_ne, members_ne)) = q_ne.classes.iter().max_by_key(|(_, v)| v.len()) {
+    if let Some((sig_ne, members_ne)) = q_ne_int.classes.iter().max_by_key(|(_, v)| v.len()) {
         tr_sembit.kv("largest_class_sig", &format!("{sig_ne:?}"));
         tr_sembit.kv("largest_class_members", &format!("{}", members_ne.len()));
         if let Some(first) = members_ne.first() {
-            tr_sembit.kv("largest_class_example", &format!("{}/{}", first.num(), first.den()));
+            tr_sembit.kv("largest_class_example", &format!("{}", first.0));
         }
     }
 
-    tr_sembit.section("Z_E PARTITION (EMBEDDED AS z/1)");
-    tr_sembit.kv("embedding", "Lift Z_E into QE by reading each integer offset as z/1.");
-    let q_ze: Quotient<QE> = Quotient::from_signatures(&ze_qe, |x| {
-        let bits = tf.signature(x);
-        Signature::Bits(bits)
+    tr_sembit.section("Z_E PARTITION (INTEGER-NATIVE 7-BIT FAMILY)");
+    tr_sembit.kv("embedding", "Use Z_E directly with sign-aware integer-native predicates.");
+    tr_sembit.kv("bit_1", "Pos    -> z > 0");
+    tr_sembit.kv("bit_2", "Zero   -> z == 0");
+    tr_sembit.kv("bit_3", "Even   -> z % 2 == 0");
+    tr_sembit.kv("bit_4", "Abs<=5 -> |z| <= 5");
+    tr_sembit.kv("bit_5", "Abs>=10 -> |z| >= 10");
+    tr_sembit.kv("bit_6", "Z%3    -> z divisible by 3");
+    tr_sembit.kv("bit_7", "Z%5    -> z divisible by 5");
+    let q_ze_int = Quotient::from_signatures(&ze, |x| {
+        let ax = x.0.abs();
+        Signature::Bits(vec![
+            x.0 > 0,
+            x.0 == 0,
+            x.0 % 2 == 0,
+            ax <= 5,
+            ax >= 10,
+            x.0 % 3 == 0,
+            x.0 % 5 == 0,
+        ])
     });
-    let raw_bits_ze = if ze_qe.is_empty() { 0.0 } else { (ze_qe.len() as f64).log2() };
-    let h_ze = sem_entropy_bits(q_ze.size());
+    let raw_bits_ze = if ze.is_empty() { 0.0 } else { (ze.len() as f64).log2() };
+    let h_ze = sem_entropy_bits(q_ze_int.size());
     let saved_bits_ze = raw_bits_ze - h_ze;
     let pct_ze = if raw_bits_ze > 0.0 { (saved_bits_ze / raw_bits_ze) * 100.0 } else { 0.0 };
-    let singleton_ze = q_ze.classes.values().filter(|members| members.len() == 1).count();
-    tr_sembit.kv("raw_items", &format!("{}", ze_qe.len()));
-    tr_sembit.kv("behavior_classes", &format!("{}", q_ze.size()));
+    let singleton_ze = q_ze_int.classes.values().filter(|members| members.len() == 1).count();
+    tr_sembit.kv("raw_items", &format!("{}", ze.len()));
+    tr_sembit.kv("behavior_classes", &format!("{}", q_ze_int.size()));
     tr_sembit.kv("sem_entropy_bits(classes)", &format!("{:.6}", h_ze));
     tr_sembit.kv("raw_entropy_bits(domain)", &format!("{:.6}", raw_bits_ze));
     tr_sembit.kv("saved_entropy_bits", &format!("{:.6}", saved_bits_ze));
     tr_sembit.kv("compression_percent", &format!("{:.2}%", pct_ze));
     tr_sembit.kv("singletons", &format!("{}", singleton_ze));
-    if let Some((sig_ze, members_ze)) = q_ze.classes.iter().max_by_key(|(_, v)| v.len()) {
+    if let Some((sig_ze, members_ze)) = q_ze_int.classes.iter().max_by_key(|(_, v)| v.len()) {
         tr_sembit.kv("largest_class_sig", &format!("{sig_ze:?}"));
         tr_sembit.kv("largest_class_members", &format!("{}", members_ze.len()));
         if let Some(first) = members_ze.first() {
-            tr_sembit.kv("largest_class_example", &format!("{}/{}", first.num(), first.den()));
+            tr_sembit.kv("largest_class_example", &format!("{}", first.0));
         }
     }
 
