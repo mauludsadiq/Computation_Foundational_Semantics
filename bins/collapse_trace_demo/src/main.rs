@@ -194,6 +194,122 @@ fn main() {
         tr_sembit.kv(&format!("{}.compression_percent", name), &format!("{:.2}%", pct_sweep));
     }
 
+    tr_sembit.section("PREDICATE ABLATION (QE 7-BIT FAMILY)");
+    tr_sembit.kv("baseline_profile", "positive, integer, den<=6, num_even, den_mod3, proper, num_abs<=5");
+
+    let baseline_ablation_q: Quotient<QE> = Quotient::from_signatures(&domain_qe, |x| {
+        let bits = tf.signature(x);
+        Signature::Bits(bits)
+    });
+    let baseline_ablation_classes = baseline_ablation_q.size();
+    let baseline_ablation_entropy = sem_entropy_bits(baseline_ablation_classes);
+    tr_sembit.kv("baseline.classes", &format!("{}", baseline_ablation_classes));
+    tr_sembit.kv("baseline.entropy_bits", &format!("{:.6}", baseline_ablation_entropy));
+
+    let ablations: Vec<(&str, &str, TestFamily<QE>)> = vec![
+        (
+            "drop_bit_1_positive",
+            "remove positive",
+            TestFamily::new(vec![
+                Test { id_norm: id2.clone(), f: t_integer },
+                Test { id_norm: id3.clone(), f: t_den_small },
+                Test { id_norm: id4.clone(), f: t_num_even },
+                Test { id_norm: id5.clone(), f: t_den_mod3 },
+                Test { id_norm: id6.clone(), f: t_proper },
+                Test { id_norm: id7.clone(), f: t_num_abs_le_5 },
+            ]),
+        ),
+        (
+            "drop_bit_2_integer",
+            "remove integer",
+            TestFamily::new(vec![
+                Test { id_norm: id1.clone(), f: t_positive },
+                Test { id_norm: id3.clone(), f: t_den_small },
+                Test { id_norm: id4.clone(), f: t_num_even },
+                Test { id_norm: id5.clone(), f: t_den_mod3 },
+                Test { id_norm: id6.clone(), f: t_proper },
+                Test { id_norm: id7.clone(), f: t_num_abs_le_5 },
+            ]),
+        ),
+        (
+            "drop_bit_3_den_small",
+            "remove den<=6",
+            TestFamily::new(vec![
+                Test { id_norm: id1.clone(), f: t_positive },
+                Test { id_norm: id2.clone(), f: t_integer },
+                Test { id_norm: id4.clone(), f: t_num_even },
+                Test { id_norm: id5.clone(), f: t_den_mod3 },
+                Test { id_norm: id6.clone(), f: t_proper },
+                Test { id_norm: id7.clone(), f: t_num_abs_le_5 },
+            ]),
+        ),
+        (
+            "drop_bit_4_num_even",
+            "remove num_even",
+            TestFamily::new(vec![
+                Test { id_norm: id1.clone(), f: t_positive },
+                Test { id_norm: id2.clone(), f: t_integer },
+                Test { id_norm: id3.clone(), f: t_den_small },
+                Test { id_norm: id5.clone(), f: t_den_mod3 },
+                Test { id_norm: id6.clone(), f: t_proper },
+                Test { id_norm: id7.clone(), f: t_num_abs_le_5 },
+            ]),
+        ),
+        (
+            "drop_bit_5_den_mod3",
+            "remove den_mod3",
+            TestFamily::new(vec![
+                Test { id_norm: id1.clone(), f: t_positive },
+                Test { id_norm: id2.clone(), f: t_integer },
+                Test { id_norm: id3.clone(), f: t_den_small },
+                Test { id_norm: id4.clone(), f: t_num_even },
+                Test { id_norm: id6.clone(), f: t_proper },
+                Test { id_norm: id7.clone(), f: t_num_abs_le_5 },
+            ]),
+        ),
+        (
+            "drop_bit_6_proper",
+            "remove proper",
+            TestFamily::new(vec![
+                Test { id_norm: id1.clone(), f: t_positive },
+                Test { id_norm: id2.clone(), f: t_integer },
+                Test { id_norm: id3.clone(), f: t_den_small },
+                Test { id_norm: id4.clone(), f: t_num_even },
+                Test { id_norm: id5.clone(), f: t_den_mod3 },
+                Test { id_norm: id7.clone(), f: t_num_abs_le_5 },
+            ]),
+        ),
+        (
+            "drop_bit_7_num_abs_le_5",
+            "remove num_abs<=5",
+            TestFamily::new(vec![
+                Test { id_norm: id1.clone(), f: t_positive },
+                Test { id_norm: id2.clone(), f: t_integer },
+                Test { id_norm: id3.clone(), f: t_den_small },
+                Test { id_norm: id4.clone(), f: t_num_even },
+                Test { id_norm: id5.clone(), f: t_den_mod3 },
+                Test { id_norm: id6.clone(), f: t_proper },
+            ]),
+        ),
+    ];
+
+    for (name, desc, tf_ablate) in ablations {
+        let q_ablate: Quotient<QE> = Quotient::from_signatures(&domain_qe, |x| {
+            let bits = tf_ablate.signature(x);
+            Signature::Bits(bits)
+        });
+        let classes_after = q_ablate.size();
+        let entropy_after = sem_entropy_bits(classes_after);
+        let class_loss = baseline_ablation_classes.saturating_sub(classes_after);
+        let entropy_loss = baseline_ablation_entropy - entropy_after;
+
+        tr_sembit.kv(&format!("{}.change", name), desc);
+        tr_sembit.kv(&format!("{}.classes", name), &format!("{}", classes_after));
+        tr_sembit.kv(&format!("{}.class_loss", name), &format!("{}", class_loss));
+        tr_sembit.kv(&format!("{}.entropy_bits", name), &format!("{:.6}", entropy_after));
+        tr_sembit.kv(&format!("{}.entropy_loss", name), &format!("{:.6}", entropy_loss));
+    }
+
     tr_sembit.section("INTEGER DOMAINS WITH DOMAIN-SPECIFIC PREDICATES");
 
     tr_sembit.section("N_E PARTITION (INTEGER-NATIVE 7-BIT FAMILY)");
