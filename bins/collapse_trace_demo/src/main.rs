@@ -139,6 +139,127 @@ fn main() {
     tr_sembit.kv("test_id_6", &id6);
     tr_sembit.kv("test_id_7", &id7);
 
+    tr_sembit.section("PREDICATE SWEEP");
+    let sweep_profiles: Vec<(&str, &str, TestFamily<QE>)> = vec![
+        (
+            "coarse_5",
+            "positive, integer, den<=6, num_even, den_mod3",
+            TestFamily::new(vec![
+                Test { id_norm: id1.clone(), f: t_positive },
+                Test { id_norm: id2.clone(), f: t_integer },
+                Test { id_norm: id3.clone(), f: t_den_small },
+                Test { id_norm: id4.clone(), f: t_num_even },
+                Test { id_norm: id5.clone(), f: t_den_mod3 },
+            ]),
+        ),
+        (
+            "proper_6",
+            "coarse_5 + proper",
+            TestFamily::new(vec![
+                Test { id_norm: id1.clone(), f: t_positive },
+                Test { id_norm: id2.clone(), f: t_integer },
+                Test { id_norm: id3.clone(), f: t_den_small },
+                Test { id_norm: id4.clone(), f: t_num_even },
+                Test { id_norm: id5.clone(), f: t_den_mod3 },
+                Test { id_norm: id6.clone(), f: t_proper },
+            ]),
+        ),
+        (
+            "numabs_7",
+            "proper_6 + num_abs<=5",
+            TestFamily::new(vec![
+                Test { id_norm: id1.clone(), f: t_positive },
+                Test { id_norm: id2.clone(), f: t_integer },
+                Test { id_norm: id3.clone(), f: t_den_small },
+                Test { id_norm: id4.clone(), f: t_num_even },
+                Test { id_norm: id5.clone(), f: t_den_mod3 },
+                Test { id_norm: id6.clone(), f: t_proper },
+                Test { id_norm: id7.clone(), f: t_num_abs_le_5 },
+            ]),
+        ),
+    ];
+    for (name, desc, tf_sweep) in sweep_profiles {
+        let q_sweep: Quotient<QE> = Quotient::from_signatures(&domain_qe, |x| {
+            let bits = tf_sweep.signature(x);
+            Signature::Bits(bits)
+        });
+        let h_sweep = sem_entropy_bits(q_sweep.size());
+        let raw_bits_sweep = (domain_qe.len() as f64).log2();
+        let saved_bits_sweep = raw_bits_sweep - h_sweep;
+        let pct_sweep = if raw_bits_sweep > 0.0 { (saved_bits_sweep / raw_bits_sweep) * 100.0 } else { 0.0 };
+        tr_sembit.kv(&format!("{}.profile", name), desc);
+        tr_sembit.kv(&format!("{}.classes", name), &format!("{}", q_sweep.size()));
+        tr_sembit.kv(&format!("{}.entropy_bits", name), &format!("{:.6}", h_sweep));
+        tr_sembit.kv(&format!("{}.saved_bits", name), &format!("{:.6}", saved_bits_sweep));
+        tr_sembit.kv(&format!("{}.compression_percent", name), &format!("{:.2}%", pct_sweep));
+    }
+
+    tr_sembit.section("INTEGER DOMAINS UNDER CURRENT QE PREDICATES");
+
+    let ne_qe: Vec<QE> = domain_qe
+        .iter()
+        .filter(|q| q.den() == 1 && q.num() >= 0 && q.num() <= 40)
+        .cloned()
+        .collect();
+
+    let ze_qe: Vec<QE> = domain_qe
+        .iter()
+        .filter(|q| q.den() == 1 && q.num() >= -20 && q.num() <= 20)
+        .cloned()
+        .collect();
+
+    tr_sembit.section("N_E PARTITION (EMBEDDED AS n/1)");
+    tr_sembit.kv("embedding", "Lift N_E into QE by reading each natural number as n/1.");
+    let q_ne: Quotient<QE> = Quotient::from_signatures(&ne_qe, |x| {
+        let bits = tf.signature(x);
+        Signature::Bits(bits)
+    });
+    let raw_bits_ne = if ne_qe.is_empty() { 0.0 } else { (ne_qe.len() as f64).log2() };
+    let h_ne = sem_entropy_bits(q_ne.size());
+    let saved_bits_ne = raw_bits_ne - h_ne;
+    let pct_ne = if raw_bits_ne > 0.0 { (saved_bits_ne / raw_bits_ne) * 100.0 } else { 0.0 };
+    let singleton_ne = q_ne.classes.values().filter(|members| members.len() == 1).count();
+    tr_sembit.kv("raw_items", &format!("{}", ne_qe.len()));
+    tr_sembit.kv("behavior_classes", &format!("{}", q_ne.size()));
+    tr_sembit.kv("sem_entropy_bits(classes)", &format!("{:.6}", h_ne));
+    tr_sembit.kv("raw_entropy_bits(domain)", &format!("{:.6}", raw_bits_ne));
+    tr_sembit.kv("saved_entropy_bits", &format!("{:.6}", saved_bits_ne));
+    tr_sembit.kv("compression_percent", &format!("{:.2}%", pct_ne));
+    tr_sembit.kv("singletons", &format!("{}", singleton_ne));
+    if let Some((sig_ne, members_ne)) = q_ne.classes.iter().max_by_key(|(_, v)| v.len()) {
+        tr_sembit.kv("largest_class_sig", &format!("{sig_ne:?}"));
+        tr_sembit.kv("largest_class_members", &format!("{}", members_ne.len()));
+        if let Some(first) = members_ne.first() {
+            tr_sembit.kv("largest_class_example", &format!("{}/{}", first.num(), first.den()));
+        }
+    }
+
+    tr_sembit.section("Z_E PARTITION (EMBEDDED AS z/1)");
+    tr_sembit.kv("embedding", "Lift Z_E into QE by reading each integer offset as z/1.");
+    let q_ze: Quotient<QE> = Quotient::from_signatures(&ze_qe, |x| {
+        let bits = tf.signature(x);
+        Signature::Bits(bits)
+    });
+    let raw_bits_ze = if ze_qe.is_empty() { 0.0 } else { (ze_qe.len() as f64).log2() };
+    let h_ze = sem_entropy_bits(q_ze.size());
+    let saved_bits_ze = raw_bits_ze - h_ze;
+    let pct_ze = if raw_bits_ze > 0.0 { (saved_bits_ze / raw_bits_ze) * 100.0 } else { 0.0 };
+    let singleton_ze = q_ze.classes.values().filter(|members| members.len() == 1).count();
+    tr_sembit.kv("raw_items", &format!("{}", ze_qe.len()));
+    tr_sembit.kv("behavior_classes", &format!("{}", q_ze.size()));
+    tr_sembit.kv("sem_entropy_bits(classes)", &format!("{:.6}", h_ze));
+    tr_sembit.kv("raw_entropy_bits(domain)", &format!("{:.6}", raw_bits_ze));
+    tr_sembit.kv("saved_entropy_bits", &format!("{:.6}", saved_bits_ze));
+    tr_sembit.kv("compression_percent", &format!("{:.2}%", pct_ze));
+    tr_sembit.kv("singletons", &format!("{}", singleton_ze));
+    if let Some((sig_ze, members_ze)) = q_ze.classes.iter().max_by_key(|(_, v)| v.len()) {
+        tr_sembit.kv("largest_class_sig", &format!("{sig_ze:?}"));
+        tr_sembit.kv("largest_class_members", &format!("{}", members_ze.len()));
+        if let Some(first) = members_ze.first() {
+            tr_sembit.kv("largest_class_example", &format!("{}/{}", first.num(), first.den()));
+        }
+    }
+
     tr_sembit.section("DOMAIN DIGEST (QE)");
     tr_sembit.kv("domain_digest_hex(QE)", &qe_digest);
 
