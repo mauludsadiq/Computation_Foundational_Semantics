@@ -529,6 +529,7 @@ fn main() {
 
     tr_sembit.section("SUMMARY (FOR HUMANS)");
     let mut summary = BTreeMap::new();
+    summary.insert("asc7_semantic_hash".to_string(), asc7_sem_hash);
     summary.insert("asc7_hash".to_string(), asc7_hash);
     summary.insert("confusables_hash".to_string(), conf_hash);
     summary.insert("domain_qe_digest".to_string(), qe_digest);
