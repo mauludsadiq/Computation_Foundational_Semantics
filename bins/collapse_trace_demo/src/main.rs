@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-use asc7::{Asc7Profile, asc7_kernel_cert, normalize_str};
+use asc7::{Asc7Profile, SemanticPredicateDef, asc7_kernel_cert, asc7_semantic_kernel_cert, normalize_str};
 use asc7::confusables::confusables_kernel_cert;
 
 use collapse_core::canon::canon_bytes;
@@ -60,6 +60,15 @@ fn main() {
     tr_asc7.section("CONFUSABLES KERNEL CERT");
     let conf_cert = confusables_kernel_cert();
     let conf_hash = trace_kernel(&mut tr_asc7, "asc7_confusables", &conf_cert);
+
+    tr_asc7.section("ASC7 SEMANTIC KERNEL CERT");
+    let semantic_predicates = vec![
+        SemanticPredicateDef { bit_index: 0, id: 1, kind: "intrinsic".to_string(), name: "upper_initial".to_string(), resource_hash_hex: None },
+        SemanticPredicateDef { bit_index: 1, id: 2, kind: "intrinsic".to_string(), name: "contains_confusable".to_string(), resource_hash_hex: None },
+        SemanticPredicateDef { bit_index: 2, id: 3, kind: "intrinsic".to_string(), name: "token_len_ge_6".to_string(), resource_hash_hex: None },
+    ];
+    let asc7_sem_cert = asc7_semantic_kernel_cert(&asc7_hash, semantic_predicates);
+    let asc7_sem_hash = trace_kernel(&mut tr_asc7, "asc7_semantic", &asc7_sem_cert);
 
     tr_asc7.section("CONFUSABLES EXPLANATION");
     tr_asc7.kv("Latin→Greek capitals", "A→Α, B→Β, E→Ε, I→Ι, K→Κ, M→Μ, N→Ν, O→Ο, P→Ρ, T→Τ, X→Χ, Y→Υ");
@@ -505,9 +514,10 @@ fn main() {
     );
     let sb_hash = trace_kernel(&mut tr_sembit, "sembit", &sb_cert);
 
-    tr_sembit.section("CERT CHAIN: asc7 → confusables → sembit");
+    tr_sembit.section("CERT CHAIN: asc7 → confusables → asc7_semantic → sembit");
     let chain = CertChain::build(vec![
         CertItem { name: "asc7".to_string(), hash_hex: asc7_hash.clone() },
+          CertItem { name: "asc7_semantic".to_string(), hash_hex: asc7_sem_hash.clone() },
         CertItem { name: "asc7_confusables".to_string(), hash_hex: conf_hash.clone() },
         CertItem { name: "sembit".to_string(), hash_hex: sb_hash.clone() },
     ]);

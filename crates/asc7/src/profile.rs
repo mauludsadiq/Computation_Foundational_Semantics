@@ -206,3 +206,105 @@ pub fn asc7_kernel_cert(p: &Asc7Profile) -> KernelCert {
     obj.insert("graph_hash_hex".to_string(), Canon::Str(hex::encode(p.graph_hash)));
     KernelCert::new("asc7", "1.0.0", Canon::Obj(obj))
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Asc7KernelCert {
+    pub graph_hash_hex: String,
+    pub profile_name: String,
+    pub syntax_strict: bool,
+    pub witness_len: u64,
+}
+
+impl Asc7KernelCert {
+    pub fn from_profile(p: &Asc7Profile) -> Self {
+        Self {
+            graph_hash_hex: hex::encode(p.graph_hash),
+            profile_name: p.params.name.clone(),
+            syntax_strict: p.params.syntax_strict,
+            witness_len: p.witness_alphabet.len() as u64,
+        }
+    }
+
+    pub fn to_canon(&self) -> Canon {
+        let mut obj = BTreeMap::new();
+        obj.insert("graph_hash_hex".to_string(), Canon::Str(self.graph_hash_hex.clone()));
+        obj.insert("profile_name".to_string(), Canon::Str(self.profile_name.clone()));
+        obj.insert("syntax_strict".to_string(), Canon::Bool(self.syntax_strict));
+        obj.insert("witness_len".to_string(), Canon::U64(self.witness_len));
+        Canon::Obj(obj)
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SemanticPredicateDef {
+    pub bit_index: u8,
+    pub id: u8,
+    pub kind: String,
+    pub name: String,
+    pub resource_hash_hex: Option<String>,
+}
+
+impl SemanticPredicateDef {
+    pub fn to_canon(&self) -> Canon {
+        let mut obj = BTreeMap::new();
+        obj.insert("bit_index".to_string(), Canon::U64(self.bit_index as u64));
+        obj.insert("id".to_string(), Canon::U64(self.id as u64));
+        obj.insert("kind".to_string(), Canon::Str(self.kind.clone()));
+        obj.insert("name".to_string(), Canon::Str(self.name.clone()));
+        match &self.resource_hash_hex {
+            Some(v) => obj.insert("resource_hash_hex".to_string(), Canon::Str(v.clone())),
+            None => obj.insert("resource_hash_hex".to_string(), Canon::Null),
+        };
+        Canon::Obj(obj)
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Asc7SemanticKernelCert {
+    pub ablation_rule: String,
+    pub base_kernel_hash_hex: String,
+    pub filter_rule: String,
+    pub predicate_registry_version: String,
+    pub predicates: Vec<SemanticPredicateDef>,
+}
+
+impl Asc7SemanticKernelCert {
+    pub fn to_canon(&self) -> Canon {
+        let mut obj = BTreeMap::new();
+        obj.insert("ablation_rule".to_string(), Canon::Str(self.ablation_rule.clone()));
+        obj.insert("base_kernel_hash_hex".to_string(), Canon::Str(self.base_kernel_hash_hex.clone()));
+        obj.insert("filter_rule".to_string(), Canon::Str(self.filter_rule.clone()));
+        obj.insert("predicate_registry_version".to_string(), Canon::Str(self.predicate_registry_version.clone()));
+        obj.insert("predicates".to_string(), Canon::Arr(self.predicates.iter().map(|p| p.to_canon()).collect()));
+        Canon::Obj(obj)
+    }
+
+    pub fn to_kernel_cert(&self) -> KernelCert {
+        KernelCert::new("asc7_semantic", "1.0.0", self.to_canon())
+    }
+}
+
+pub fn semantic_mask_value(bit_index: u8, enabled: bool) -> (u64, u64) {
+    let bit = 1u64 << bit_index;
+    let mask = bit;
+    let value = if enabled { bit } else { 0 };
+    (mask, value)
+}
+
+pub fn signature_matches(sig: u64, mask: u64, value: u64) -> bool {
+    (sig & mask) == value
+}
+
+pub fn ablate_signature(sig: u64, keep_mask: u64) -> u64 {
+    sig & keep_mask
+}
+
+pub fn asc7_semantic_kernel_cert(base_kernel_hash_hex: &str, predicates: Vec<SemanticPredicateDef>) -> KernelCert {
+    Asc7SemanticKernelCert {
+        ablation_rule: "ablate_signature(sig, keep_mask) = sig & keep_mask".to_string(),
+        base_kernel_hash_hex: base_kernel_hash_hex.to_string(),
+        filter_rule: "SET_BIT(mask,value): match iff (sig & mask) == value".to_string(),
+        predicate_registry_version: "1.0.0".to_string(),
+        predicates,
+    }.to_kernel_cert()
+}
